@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<title>Searching 26 - Versi Lengkap</title>
+<style>
+html,body{margin:0;padding:0;width:100%;height:100%;font-family:Arial, sans-serif;overflow-x:hidden;}
+body{background:linear-gradient(135deg,#ffefba,#ffffff);position:relative;}
+body::before{
+  content:"";
+  position:absolute;
+  top:0;left:0;width:100%;height:100%;
+  background:url('https://i.ibb.co/6FzWj2y/flower-pattern.png');
+  background-size:cover;
+  opacity:0.05;
+  z-index:-1;
+}
+#login,#searchPage{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;}
+input,button{padding:10px 14px;margin:5px;border-radius:5px;border:1px solid #ccc;font-size:16px;}
+button{cursor:pointer;background:#007bff;color:#fff;border:none;}
+#searchBar{width:50%;max-width:600px;margin:20px 0;}
+#results{width:70%;max-width:800px;margin-top:20px;}
+.resultItem{background:rgba(255,255,255,0.95);padding:12px;margin:8px 0;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+.resultItem h3{margin:0;color:#007bff;}
+.resultItem p{margin:5px 0;color:#333;}
+.header{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h2>Searching 26 - Log Masuk / Buat Akaun</h2>
+  <input type="text" id="username" placeholder="Nama pengguna"><br>
+  <input type="password" id="password" placeholder="Kata laluan"><br>
+  <button onclick="login()">Log Masuk</button>
+</div>
+
+<div id="searchPage" style="display:none;flex-direction:column;align-items:center;">
+  <div class="header">
+    <h2>Searching 26</h2>
+    <button onclick="logout()">Log Out</button>
+  </div>
+  <input type="text" id="searchBar" placeholder="Taip untuk mencari..." oninput="wikiSearch()">
+  <div id="results"></div>
+</div>
+
+<script>
+// Login
+function login(){
+  const user=document.getElementById("username").value.trim();
+  const pass=document.getElementById("password").value.trim();
+  if(!user||!pass){alert("Sila isi nama & kata laluan");return;}
+  localStorage.setItem("searchUser",JSON.stringify({user,pass}));
+  document.getElementById("login").style.display="none";
+  document.getElementById("searchPage").style.display="flex";
+}
+
+// Logout
+function logout(){
+  localStorage.removeItem("searchUser");
+  location.reload();
+}
+
+// Check login
+if(localStorage.getItem("searchUser")){
+  document.getElementById("login").style.display="none";
+  document.getElementById("searchPage").style.display="flex";
+}
+
+// Wikipedia API search
+function wikiSearch(){
+  const query=document.getElementById("searchBar").value.trim();
+  const resultsDiv=document.getElementById("results");
+  resultsDiv.innerHTML="";
+  if(!query) return;
+
+  fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=search&srsearch=${encodeURIComponent(query)}`)
+    .then(res=>res.json())
+    .then(data=>{
+      const list=data.query.search;
+      if(list.length == 0){
+        resultsDiv.innerHTML="<p><strong>DATA TIDAK DIJUMPAI</strong></p>";
+        return;
+      }
+      list.forEach(item=>{
+        const title=item.title;
+        const snippet=item.snippet.replace(/(<([^>]+)>)/gi,"");
+        const url="https://en.wikipedia.org/wiki/"+encodeURIComponent(title);
+        resultsDiv.innerHTML += `
+          <div class="resultItem">
+            <h3><a href="${url}" target="_blank">${title}</a></h3>
+            <p>${snippet} ...</p>
+          </div>
+        `;
+      });
+      // Backup offline
+      localStorage.setItem('searchBackup',JSON.stringify(list));
+    })
+    .catch(err=>{
+      console.log(err);
+      const backup = localStorage.getItem('searchBackup');
+      if(backup){
+        const list=JSON.parse(backup);
+        list.forEach(item=>{
+          const title=item.title;
+          const snippet=item.snippet || "";
+          const url="https://en.wikipedia.org/wiki/"+encodeURIComponent(title);
+          resultsDiv.innerHTML += `
+            <div class="resultItem">
+              <h3><a href="${url}" target="_blank">${title}</a></h3>
+              <p>${snippet} ...</p>
+            </div>
+          `;
+        });
+      } else {
+        resultsDiv.innerHTML="<p><strong>DATA TIDAK DIJUMPAI</strong></p>";
+      }
+    });
+}
+</script>
+
+</body>
+</html>
